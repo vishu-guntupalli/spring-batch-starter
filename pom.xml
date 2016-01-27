@@ -59,7 +59,18 @@
             <artifactId>spring-boot-starter-tomcat</artifactId>
             <scope>provided</scope>
         </dependency>
-     
+        
+        <dependency>
+			<groupId>commons-dbcp</groupId>
+			<artifactId>commons-dbcp</artifactId>
+		</dependency>
+		
+		<dependency>
+		   <groupId>com.oracle.weblogic</groupId>
+  		   <artifactId>ojdbc7</artifactId>
+  		   <version>12.1.3-0-0</version>
+		</dependency>
+        
       <!--
       ##########################################################################
       ####################       Unit Testing Dependencies       ####################

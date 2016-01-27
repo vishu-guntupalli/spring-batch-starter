@@ -1,12 +1,14 @@
 package com.vishu.batch.config;
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
@@ -22,8 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.UrlResource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.vishu.batch.model.DiscountProduct;
 import com.vishu.batch.model.Product;
@@ -35,13 +36,26 @@ import com.vishu.batch.processor.ProductItemProcessor;
 @PropertySource(value = { "classpath:/com/vishu/batch/batch.properties" })
 public class BatchConfiguration {
 	
+	//File Read and write paths
 	@Value("${readFilePath}")
 	private String readFilePath;
 	
 	@Value("${writeFilePath}")
 	private String writeFilePath;
 	
-	@Bean
+    // The following four variables are used for DB connection	
+	@Value("${spring.datasource.url}")
+	private String url;
+	
+	@Value("${spring.datasource.username}")
+	private String username;
+	
+	@Value("${spring.datasource.password}")
+	private String password;
+	
+	@Value("${spring.datasource.driverClassName}")
+	private String driverClassName;
+	
     public ItemReader<Product> productsFileReader() {
         FlatFileItemReader<Product> reader = new FlatFileItemReader<Product>();
         reader.setResource(new ClassPathResource(readFilePath));
@@ -77,6 +91,36 @@ public class BatchConfiguration {
     	discountProductWriter.setLineAggregator(lineAggregator);
     	
     	return discountProductWriter;
+    }
+    
+    @Bean 
+    public BasicDataSource dataSource() {
+    	BasicDataSource datasource = new BasicDataSource();
+    	datasource.setUrl(url);
+        datasource.setUsername(username);
+        datasource.setPassword(password);
+        datasource.setDriverClassName(driverClassName);
+        
+        return datasource;
+    }
+    
+    @Bean
+    public DataSourceTransactionManager transactionManager() {
+    	DataSourceTransactionManager transactionManager = new DataSourceTransactionManager();
+    	transactionManager.setDataSource(dataSource());
+    	
+    	return transactionManager;
+    }
+    
+    @Bean 
+    public JobRepository jobRepository() throws Exception {
+    	JobRepositoryFactoryBean jobRepository = new JobRepositoryFactoryBean();
+    	jobRepository.setDataSource(dataSource());
+    	jobRepository.setTransactionManager(transactionManager());
+    	jobRepository.setIsolationLevelForCreate("ISOLATION_READ_UNCOMMITTED");
+    	jobRepository.setDatabaseType("ORACLE");
+    	
+    	return jobRepository.getJobRepository();
     }
     
     @Bean
