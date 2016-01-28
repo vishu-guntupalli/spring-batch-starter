@@ -26,8 +26,10 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
+import com.vishu.batch.model.BaseballPlayer;
 import com.vishu.batch.model.DiscountProduct;
 import com.vishu.batch.model.Product;
+import com.vishu.batch.processor.BaseballPlayerProcessor;
 import com.vishu.batch.processor.ProductItemProcessor;
 
 
@@ -36,12 +38,22 @@ import com.vishu.batch.processor.ProductItemProcessor;
 @PropertySource(value = { "classpath:/com/vishu/batch/batch.properties" })
 public class BatchConfiguration {
 	
+	private static final String DATABASE_TYPE = "ORACLE";
+
+	private static final String ISOLATION_LEVEL = "ISOLATION_READ_UNCOMMITTED";
+
 	//File Read and write paths
-	@Value("${readFilePath}")
-	private String readFilePath;
+	@Value("${productFilePath}")
+	private String productFilePath;
+	
+	@Value("${playerFilePath}")
+	private String playerFilePath;
 	
 	@Value("${writeFilePath}")
 	private String writeFilePath;
+	
+	@Value("${playerFileWritePath}")
+	private String playerFileWritePath;
 	
     // The following four variables are used for DB connection	
 	@Value("${spring.datasource.url}")
@@ -56,9 +68,10 @@ public class BatchConfiguration {
 	@Value("${spring.datasource.driverClassName}")
 	private String driverClassName;
 	
+	@Bean
     public ItemReader<Product> productsFileReader() {
         FlatFileItemReader<Product> reader = new FlatFileItemReader<Product>();
-        reader.setResource(new ClassPathResource(readFilePath));
+        reader.setResource(new ClassPathResource(productFilePath));
         reader.setLineMapper(new DefaultLineMapper<Product>() {{
             setLineTokenizer(new DelimitedLineTokenizer() {{
                 setNames(new String[] { "productId", "productName", "price" });
@@ -70,9 +83,31 @@ public class BatchConfiguration {
         return reader;
     }
 	
+	@Bean
+	public ItemReader<BaseballPlayer> playerReader() {
+		FlatFileItemReader<BaseballPlayer> playerReader = new FlatFileItemReader<BaseballPlayer>();
+		playerReader.setResource(new ClassPathResource(playerFilePath));
+		playerReader.setLinesToSkip(1);
+		playerReader.setLineMapper(new DefaultLineMapper<BaseballPlayer>(){{
+			setLineTokenizer(new DelimitedLineTokenizer() {{
+                setNames(new String[] { "playerId", "awardType", "year", "leagueType", "isTie", "notes" });
+            }});
+			setFieldSetMapper(new BeanWrapperFieldSetMapper<BaseballPlayer>() {{
+                setTargetType(BaseballPlayer.class);
+            }});	
+		}});
+		
+		return playerReader;
+	}
+	
 	@Bean 
 	public ItemProcessor<Product, DiscountProduct> productProcessor() {
 		return new ProductItemProcessor();
+	}
+	
+	@Bean
+	public ItemProcessor<BaseballPlayer, BaseballPlayer> playerProcessor() {
+		return new BaseballPlayerProcessor();
 	}
 
     @Bean
@@ -91,6 +126,25 @@ public class BatchConfiguration {
     	discountProductWriter.setLineAggregator(lineAggregator);
     	
     	return discountProductWriter;
+    }
+    
+    @Bean
+    public ItemWriter<BaseballPlayer> playerWriter() {
+    	FlatFileItemWriter<BaseballPlayer> playerWriter = new FlatFileItemWriter<BaseballPlayer>();
+    	playerWriter.setResource(new ClassPathResource(playerFileWritePath));
+    	playerWriter.setForceSync(true);
+    	
+    	DelimitedLineAggregator<BaseballPlayer> lineAggregator = new DelimitedLineAggregator<BaseballPlayer>();
+    	lineAggregator.setDelimiter(",");
+    	
+    	BeanWrapperFieldExtractor<BaseballPlayer> fieldExtractor = new BeanWrapperFieldExtractor<BaseballPlayer>();
+    	fieldExtractor.setNames(new String[] { "playerId", "awardType", "year", "leagueType", "isTie", "notes" });
+    	
+    	lineAggregator.setFieldExtractor(fieldExtractor);
+    	playerWriter.setLineAggregator(lineAggregator);
+    	
+    	return playerWriter;
+    	
     }
     
     @Bean 
@@ -112,27 +166,28 @@ public class BatchConfiguration {
     	return transactionManager;
     }
     
-    @Bean 
+	@Bean 
     public JobRepository jobRepository() throws Exception {
     	JobRepositoryFactoryBean jobRepository = new JobRepositoryFactoryBean();
     	jobRepository.setDataSource(dataSource());
     	jobRepository.setTransactionManager(transactionManager());
-    	jobRepository.setIsolationLevelForCreate("ISOLATION_READ_UNCOMMITTED");
-    	jobRepository.setDatabaseType("ORACLE");
+    	jobRepository.setIsolationLevelForCreate(ISOLATION_LEVEL);
+    	jobRepository.setDatabaseType(DATABASE_TYPE);
     	
     	return jobRepository.getJobRepository();
     }
     
     @Bean
-    public Job importProductJob(JobBuilderFactory jobs, Step s1) {
+    public Job importProductJob(JobBuilderFactory jobs, Step s1) throws Exception {
         return jobs.get("importProductJob")
                 .incrementer(new RunIdIncrementer())
+                .repository(jobRepository())
                 .flow(s1)
                 .end()
                 .build();
     }
 
-    @Bean
+    @Bean(name="importProductJob")
     public Step step1(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader,
             ItemWriter<DiscountProduct> writer, ItemProcessor<Product, DiscountProduct> processor) {
         return stepBuilderFactory.get("readProcessWriteProducts")
@@ -141,6 +196,18 @@ public class BatchConfiguration {
                 .processor(processor)
                 .writer(writer)
                 .build();
+    }
+    
+    @Bean
+    public Step processPlayersStep(StepBuilderFactory stepBuilderFactory, ItemReader<BaseballPlayer> reader,
+    		ItemWriter<BaseballPlayer> writer, ItemProcessor<BaseballPlayer, BaseballPlayer> itemProcessor) {
+    	return stepBuilderFactory.get("processPlayers")
+    			.<BaseballPlayer, BaseballPlayer> chunk(10)
+    			.reader(reader)
+    			.processor(itemProcessor)
+    			.writer(writer)
+    			.build();
+    			
     }
 	
 }
