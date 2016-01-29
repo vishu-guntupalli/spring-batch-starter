@@ -6,7 +6,9 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
 import org.springframework.batch.item.ItemProcessor;
@@ -38,7 +40,7 @@ import com.vishu.batch.processor.ProductItemProcessor;
 @PropertySource(value = { "classpath:/com/vishu/batch/batch.properties" })
 public class BatchConfiguration {
 	
-	private static final String DATABASE_TYPE = "ORACLE";
+	private static final String DATABASE_TYPE = "MySQL";
 
 	private static final String ISOLATION_LEVEL = "ISOLATION_READ_UNCOMMITTED";
 
@@ -176,21 +178,39 @@ public class BatchConfiguration {
     	
     	return jobRepository.getJobRepository();
     }
+	
+	@Bean
+	public JobLauncher jobLauncher(JobRepository jobRepository) {
+		SimpleJobLauncher simpleJobLauncher = new SimpleJobLauncher();
+		simpleJobLauncher.setJobRepository(jobRepository);
+		
+		return simpleJobLauncher;
+	}
     
-    @Bean
-    public Job importProductJob(JobBuilderFactory jobs, Step s1) throws Exception {
+    @Bean(name="importProductJob")
+    public Job importProductJob(JobBuilderFactory jobs, Step processProducts) throws Exception {
         return jobs.get("importProductJob")
                 .incrementer(new RunIdIncrementer())
                 .repository(jobRepository())
-                .flow(s1)
+                .flow(processProducts)
+                .end()
+                .build();
+    }
+    
+    @Bean
+    public Job processPlayersJob(JobBuilderFactory jobs, Step processPlayers) throws Exception {
+    	return jobs.get("processPlayersJob")
+                .incrementer(new RunIdIncrementer())
+                .repository(jobRepository())
+                .flow(processPlayers)
                 .end()
                 .build();
     }
 
-    @Bean(name="importProductJob")
-    public Step step1(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader,
+    @Bean
+    public Step processProducts(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader,
             ItemWriter<DiscountProduct> writer, ItemProcessor<Product, DiscountProduct> processor) {
-        return stepBuilderFactory.get("readProcessWriteProducts")
+        return stepBuilderFactory.get("processProducts")
                 .<Product, DiscountProduct> chunk(10)
                 .reader(reader)
                 .processor(processor)
@@ -199,7 +219,7 @@ public class BatchConfiguration {
     }
     
     @Bean
-    public Step processPlayersStep(StepBuilderFactory stepBuilderFactory, ItemReader<BaseballPlayer> reader,
+    public Step processPlayers(StepBuilderFactory stepBuilderFactory, ItemReader<BaseballPlayer> reader,
     		ItemWriter<BaseballPlayer> writer, ItemProcessor<BaseballPlayer, BaseballPlayer> itemProcessor) {
     	return stepBuilderFactory.get("processPlayers")
     			.<BaseballPlayer, BaseballPlayer> chunk(10)
@@ -207,7 +227,6 @@ public class BatchConfiguration {
     			.processor(itemProcessor)
     			.writer(writer)
     			.build();
-    			
     }
 	
 }
