@@ -22,12 +22,15 @@ import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
+import com.vishu.batch.controller.BatchAPI;
 import com.vishu.batch.model.BaseballPlayer;
 import com.vishu.batch.model.DiscountProduct;
 import com.vishu.batch.model.Product;
@@ -37,6 +40,7 @@ import com.vishu.batch.processor.ProductItemProcessor;
 
 @Configuration
 @EnableBatchProcessing
+@EnableAutoConfiguration
 @PropertySource(value = { "classpath:/com/vishu/batch/batch.properties" })
 public class BatchConfiguration {
 	
@@ -187,9 +191,9 @@ public class BatchConfiguration {
 		return simpleJobLauncher;
 	}
     
-    @Bean(name="importProductJob")
-    public Job importProductJob(JobBuilderFactory jobs, Step processProducts) throws Exception {
-        return jobs.get("importProductJob")
+    @Bean
+    public Job importProductsJob(JobBuilderFactory jobs, Step processProducts) throws Exception {
+        return jobs.get("importProductsJob")
                 .incrementer(new RunIdIncrementer())
                 .repository(jobRepository())
                 .flow(processProducts)
