@@ -75,7 +75,7 @@ public class BatchAPITest {
 		assertEquals(paramMap.toString(), parametersCaptor.getValue().getParameters().toString());
 		Mockito.verify(mockJoblauncher).run(jobCaptor.getValue(), parametersCaptor.getValue());
 		assertNotNull(returnMap);
-		assertEquals(ExitStatus.COMPLETED.toString(), returnMap.get("ExitStatus"));
+		assertEquals(ExitStatus.COMPLETED.getExitCode().toString(), returnMap.get("ExitStatus"));
 	}
 	
 	@Test
@@ -96,7 +96,7 @@ public class BatchAPITest {
 		assertEquals(paramMap.toString(), parametersCaptor.getValue().getParameters().toString());
 		assertEquals(paramMap.size(), parametersCaptor.getValue().getParameters().size());
 		Mockito.verify(mockJoblauncher).run(jobCaptor.getValue(), parametersCaptor.getValue());
-		assertEquals(ExitStatus.COMPLETED.toString(), returnMap.get("ExitStatus"));
+		assertEquals(ExitStatus.COMPLETED.getExitCode().toString(), returnMap.get("ExitStatus"));
 	}
 	
 }
