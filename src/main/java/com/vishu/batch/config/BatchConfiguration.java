@@ -24,13 +24,11 @@ import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
-import com.vishu.batch.controller.BatchAPI;
 import com.vishu.batch.model.BaseballPlayer;
 import com.vishu.batch.model.DiscountProduct;
 import com.vishu.batch.model.Product;
@@ -74,7 +72,7 @@ public class BatchConfiguration {
 	@Value("${spring.datasource.driverClassName}")
 	private String driverClassName;
 	
-	@Bean
+	@Bean(name="productsFileReader")
     public ItemReader<Product> productsFileReader() {
         FlatFileItemReader<Product> reader = new FlatFileItemReader<Product>();
         reader.setResource(new ClassPathResource(productFilePath));
