@@ -23,8 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class BatchAPI {
 	
-	private static JobParametersBuilder parametersBuilder = new JobParametersBuilder();
-	
 	@Autowired
 	private JobLauncher jobLauncher;
 	
@@ -37,6 +35,7 @@ public class BatchAPI {
 	@RequestMapping(method=RequestMethod.POST, value="/batch/api/startImportProductsJob", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
 	public @ResponseBody Map<String, String> startImportProductsJob(@RequestBody Map<String, String> paramMap) throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
 		
+		JobParametersBuilder parametersBuilder = new JobParametersBuilder();
 		paramMap.forEach((key, value) -> parametersBuilder.addString(key, value));
 		
 		JobExecution jobExecution = jobLauncher.run(importProductsJob, parametersBuilder.toJobParameters());
@@ -49,6 +48,7 @@ public class BatchAPI {
 	@RequestMapping(method=RequestMethod.POST, value="/batch/api/startProcessPlayersJob", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
 	public @ResponseBody Map<String, String> startProcessPlayersJob(@RequestBody Map<String, String> paramMap) throws Exception{
 		
+		JobParametersBuilder parametersBuilder = new JobParametersBuilder();
 		paramMap.forEach((key, value) -> parametersBuilder.addString(key, value));
 		
 		JobExecution jobExecution = jobLauncher.run(processPlayersJob, parametersBuilder.toJobParameters());

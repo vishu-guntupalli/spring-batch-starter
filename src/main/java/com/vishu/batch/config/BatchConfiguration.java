@@ -14,6 +14,7 @@ import org.springframework.batch.core.repository.support.JobRepositoryFactoryBea
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.adapter.ItemWriterAdapter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -28,12 +29,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.web.client.RestTemplate;
 
 import com.vishu.batch.model.BaseballPlayer;
 import com.vishu.batch.model.DiscountProduct;
 import com.vishu.batch.model.Product;
 import com.vishu.batch.processor.BaseballPlayerProcessor;
 import com.vishu.batch.processor.ProductItemProcessor;
+import com.vishu.batch.writer.RestApiWriter;
 
 
 @Configuration
@@ -114,7 +117,7 @@ public class BatchConfiguration {
 		return new BaseballPlayerProcessor();
 	}
 
-    @Bean
+    @Bean(name="productWriter")
     public ItemWriter<DiscountProduct> productWriter() {
     	FlatFileItemWriter<DiscountProduct> discountProductWriter = new FlatFileItemWriter<DiscountProduct>();
     	discountProductWriter.setResource(new ClassPathResource(writeFilePath));
@@ -152,6 +155,26 @@ public class BatchConfiguration {
     }
     
     @Bean 
+    public RestApiWriter restApiWriter() {
+    	RestApiWriter restApiWriter = new RestApiWriter();
+    	return restApiWriter;
+    }
+    
+    @Bean 
+    public ItemWriterAdapter<DiscountProduct> oracleErpWriter() {
+    	ItemWriterAdapter<DiscountProduct> itemWriterAdapter = new ItemWriterAdapter<>();
+    	itemWriterAdapter.setTargetObject(restApiWriter());
+    	itemWriterAdapter.setTargetMethod("sendToErp");
+    	
+    	return itemWriterAdapter;
+    }
+    
+    @Bean
+    public RestTemplate restTemplate() {
+    	return new RestTemplate();
+    }
+    
+    @Bean  
     public BasicDataSource dataSource() {
     	BasicDataSource datasource = new BasicDataSource();
     	datasource.setUrl(url);
@@ -211,12 +234,12 @@ public class BatchConfiguration {
 
     @Bean
     public Step processProducts(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader,
-            ItemWriter<DiscountProduct> writer, ItemProcessor<Product, DiscountProduct> processor) {
+            ItemWriter<DiscountProduct> oracleErpWriter, ItemProcessor<Product, DiscountProduct> processor) {
         return stepBuilderFactory.get("processProducts")
                 .<Product, DiscountProduct> chunk(10)
                 .reader(reader)
                 .processor(processor)
-                .writer(writer)
+                .writer(oracleErpWriter)
                 .build();
     }
     
