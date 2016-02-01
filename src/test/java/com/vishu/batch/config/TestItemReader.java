@@ -17,7 +17,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.vishu.batch.model.Product;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes={BatchConfiguration.class})
+@SpringApplicationConfiguration(classes={BatchConfiguration.class, TestConfiguration.class})
 public class TestItemReader{
 
 	@Autowired
