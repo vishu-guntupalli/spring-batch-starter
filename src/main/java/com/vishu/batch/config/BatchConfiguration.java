@@ -17,6 +17,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.adapter.ItemWriterAdapter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
@@ -121,6 +122,9 @@ public class BatchConfiguration {
     public Step processProducts(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader, ItemWriter<DiscountProduct> oracleErpWriter, ItemProcessor<Product, DiscountProduct> processor) {
         return stepBuilderFactory.get("processProducts")
                 .<Product, DiscountProduct> chunk(10)
+                .faultTolerant()
+                .skip(FlatFileParseException.class)
+                .skipLimit(10)
                 .reader(reader)
                 .processor(processor)
                 .writer(oracleErpWriter)

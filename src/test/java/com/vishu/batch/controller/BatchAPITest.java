@@ -26,9 +26,10 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.vishu.batch.config.BatchConfiguration;
+import com.vishu.batch.config.TestConfiguration;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes=BatchConfiguration.class)
+@ContextConfiguration(classes={BatchConfiguration.class, TestConfiguration.class})
 public class BatchAPITest {
 
 	@InjectMocks
