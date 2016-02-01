@@ -23,7 +23,6 @@ import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -41,10 +40,15 @@ import com.vishu.batch.writer.RestApiWriter;
 
 @Configuration
 @EnableBatchProcessing
-@EnableAutoConfiguration
 @PropertySource(value = { "classpath:/com/vishu/batch/batch.properties" })
 public class BatchConfiguration {
 	
+	private static final String[] DISCOUNTPRODUCT_FIELDS = new String[] {"productId", "productName", "price", "discountAvailable"};
+
+	private static final String[] PRODUCT_FIELDS = new String[] { "productId", "productName", "price" };
+
+	private static final String[] BASEBALLPLAYER_FIELDS = new String[] { "playerId", "awardType", "year", "leagueType", "isTie", "notes" };
+
 	private static final String DATABASE_TYPE = "MySQL";
 
 	private static final String ISOLATION_LEVEL = "ISOLATION_READ_UNCOMMITTED";
@@ -81,13 +85,56 @@ public class BatchConfiguration {
         reader.setResource(new ClassPathResource(productFilePath));
         reader.setLineMapper(new DefaultLineMapper<Product>() {{
             setLineTokenizer(new DelimitedLineTokenizer() {{
-                setNames(new String[] { "productId", "productName", "price" });
+                setNames(PRODUCT_FIELDS);
             }});
             setFieldSetMapper(new BeanWrapperFieldSetMapper<Product>() {{
                 setTargetType(Product.class);
             }});
         }});
         return reader;
+    }
+	
+	@Bean 
+	public ItemProcessor<Product, DiscountProduct> productProcessor() {
+		return new ProductItemProcessor();
+	}
+	
+	@Bean(name="productWriter")
+	public ItemWriter<DiscountProduct> productWriter() {
+		FlatFileItemWriter<DiscountProduct> discountProductWriter = new FlatFileItemWriter<DiscountProduct>();
+		discountProductWriter.setResource(new ClassPathResource(writeFilePath));
+		discountProductWriter.setForceSync(true);
+		
+		DelimitedLineAggregator<DiscountProduct> lineAggregator = new DelimitedLineAggregator<DiscountProduct>();
+		lineAggregator.setDelimiter(",");
+		
+		BeanWrapperFieldExtractor<DiscountProduct> fieldExtractor = new BeanWrapperFieldExtractor<DiscountProduct>();
+		fieldExtractor.setNames(DISCOUNTPRODUCT_FIELDS);
+		
+		lineAggregator.setFieldExtractor(fieldExtractor);
+		discountProductWriter.setLineAggregator(lineAggregator);
+		
+		return discountProductWriter;
+	}
+	
+	@Bean
+    public Step processProducts(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader, ItemWriter<DiscountProduct> oracleErpWriter, ItemProcessor<Product, DiscountProduct> processor) {
+        return stepBuilderFactory.get("processProducts")
+                .<Product, DiscountProduct> chunk(10)
+                .reader(reader)
+                .processor(processor)
+                .writer(oracleErpWriter)
+                .build();
+    }
+	
+	@Bean
+    public Job importProductsJob(JobBuilderFactory jobs, Step processProducts) throws Exception {
+        return jobs.get("importProductsJob")
+                .incrementer(new RunIdIncrementer())
+                .repository(jobRepository())
+                .flow(processProducts)
+                .end()
+                .build();
     }
 	
 	@Bean
@@ -97,7 +144,7 @@ public class BatchConfiguration {
 		playerReader.setLinesToSkip(1);
 		playerReader.setLineMapper(new DefaultLineMapper<BaseballPlayer>(){{
 			setLineTokenizer(new DelimitedLineTokenizer() {{
-                setNames(new String[] { "playerId", "awardType", "year", "leagueType", "isTie", "notes" });
+                setNames(BASEBALLPLAYER_FIELDS);
             }});
 			setFieldSetMapper(new BeanWrapperFieldSetMapper<BaseballPlayer>() {{
                 setTargetType(BaseballPlayer.class);
@@ -107,33 +154,10 @@ public class BatchConfiguration {
 		return playerReader;
 	}
 	
-	@Bean 
-	public ItemProcessor<Product, DiscountProduct> productProcessor() {
-		return new ProductItemProcessor();
-	}
-	
 	@Bean
 	public ItemProcessor<BaseballPlayer, BaseballPlayer> playerProcessor() {
 		return new BaseballPlayerProcessor();
 	}
-
-    @Bean(name="productWriter")
-    public ItemWriter<DiscountProduct> productWriter() {
-    	FlatFileItemWriter<DiscountProduct> discountProductWriter = new FlatFileItemWriter<DiscountProduct>();
-    	discountProductWriter.setResource(new ClassPathResource(writeFilePath));
-    	discountProductWriter.setForceSync(true);
-    	
-    	DelimitedLineAggregator<DiscountProduct> lineAggregator = new DelimitedLineAggregator<DiscountProduct>();
-    	lineAggregator.setDelimiter(",");
-    	
-    	BeanWrapperFieldExtractor<DiscountProduct> fieldExtractor = new BeanWrapperFieldExtractor<DiscountProduct>();
-    	fieldExtractor.setNames(new String[] {"productId", "productName", "price", "discountAvailable"});
-    	
-    	lineAggregator.setFieldExtractor(fieldExtractor);
-    	discountProductWriter.setLineAggregator(lineAggregator);
-    	
-    	return discountProductWriter;
-    }
     
     @Bean
     public ItemWriter<BaseballPlayer> playerWriter() {
@@ -145,13 +169,18 @@ public class BatchConfiguration {
     	lineAggregator.setDelimiter(",");
     	
     	BeanWrapperFieldExtractor<BaseballPlayer> fieldExtractor = new BeanWrapperFieldExtractor<BaseballPlayer>();
-    	fieldExtractor.setNames(new String[] { "playerId", "awardType", "year", "leagueType", "isTie", "notes" });
+    	fieldExtractor.setNames(BASEBALLPLAYER_FIELDS);
     	
     	lineAggregator.setFieldExtractor(fieldExtractor);
     	playerWriter.setLineAggregator(lineAggregator);
     	
     	return playerWriter;
     	
+    }
+    
+    @Bean
+    public RestTemplate restTemplate() {
+    	return new RestTemplate();
     }
     
     @Bean 
@@ -170,8 +199,23 @@ public class BatchConfiguration {
     }
     
     @Bean
-    public RestTemplate restTemplate() {
-    	return new RestTemplate();
+    public Step processPlayers(StepBuilderFactory stepBuilderFactory, ItemReader<BaseballPlayer> reader, ItemWriter<BaseballPlayer> writer, ItemProcessor<BaseballPlayer, BaseballPlayer> itemProcessor) {
+    	return stepBuilderFactory.get("processPlayers")
+    			.<BaseballPlayer, BaseballPlayer> chunk(10)
+    			.reader(reader)
+    			.processor(itemProcessor)
+    			.writer(writer)
+    			.build();
+    }
+    
+    @Bean
+    public Job processPlayersJob(JobBuilderFactory jobs, Step processPlayers) throws Exception {
+    	return jobs.get("processPlayersJob")
+                .incrementer(new RunIdIncrementer())
+                .repository(jobRepository())
+                .flow(processPlayers)
+                .end()
+                .build();
     }
     
     @Bean  
@@ -195,13 +239,13 @@ public class BatchConfiguration {
     
 	@Bean 
     public JobRepository jobRepository() throws Exception {
-    	JobRepositoryFactoryBean jobRepository = new JobRepositoryFactoryBean();
-    	jobRepository.setDataSource(dataSource());
-    	jobRepository.setTransactionManager(transactionManager());
-    	jobRepository.setIsolationLevelForCreate(ISOLATION_LEVEL);
-    	jobRepository.setDatabaseType(DATABASE_TYPE);
+    	JobRepositoryFactoryBean jobRepositoryFactoryBean = new JobRepositoryFactoryBean();
+    	jobRepositoryFactoryBean.setDataSource(dataSource());
+    	jobRepositoryFactoryBean.setTransactionManager(transactionManager());
+    	jobRepositoryFactoryBean.setIsolationLevelForCreate(ISOLATION_LEVEL);
+    	jobRepositoryFactoryBean.setDatabaseType(DATABASE_TYPE);
     	
-    	return jobRepository.getJobRepository();
+    	return jobRepositoryFactoryBean.getJobRepository();
     }
 	
 	@Bean
@@ -211,47 +255,5 @@ public class BatchConfiguration {
 		
 		return simpleJobLauncher;
 	}
-    
-    @Bean
-    public Job importProductsJob(JobBuilderFactory jobs, Step processProducts) throws Exception {
-        return jobs.get("importProductsJob")
-                .incrementer(new RunIdIncrementer())
-                .repository(jobRepository())
-                .flow(processProducts)
-                .end()
-                .build();
-    }
-    
-    @Bean
-    public Job processPlayersJob(JobBuilderFactory jobs, Step processPlayers) throws Exception {
-    	return jobs.get("processPlayersJob")
-                .incrementer(new RunIdIncrementer())
-                .repository(jobRepository())
-                .flow(processPlayers)
-                .end()
-                .build();
-    }
-
-    @Bean
-    public Step processProducts(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader,
-            ItemWriter<DiscountProduct> oracleErpWriter, ItemProcessor<Product, DiscountProduct> processor) {
-        return stepBuilderFactory.get("processProducts")
-                .<Product, DiscountProduct> chunk(10)
-                .reader(reader)
-                .processor(processor)
-                .writer(oracleErpWriter)
-                .build();
-    }
-    
-    @Bean
-    public Step processPlayers(StepBuilderFactory stepBuilderFactory, ItemReader<BaseballPlayer> reader,
-    		ItemWriter<BaseballPlayer> writer, ItemProcessor<BaseballPlayer, BaseballPlayer> itemProcessor) {
-    	return stepBuilderFactory.get("processPlayers")
-    			.<BaseballPlayer, BaseballPlayer> chunk(10)
-    			.reader(reader)
-    			.processor(itemProcessor)
-    			.writer(writer)
-    			.build();
-    }
 	
 }
