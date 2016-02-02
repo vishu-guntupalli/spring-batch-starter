@@ -1,11 +1,13 @@
 package com.vishu.batch.config;
 
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
+@EnableAutoConfiguration
 public class TestConfiguration {
 	@Bean
 	public ObjectMapper objectMapper() {
