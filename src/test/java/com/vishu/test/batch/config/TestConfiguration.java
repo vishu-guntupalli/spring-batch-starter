@@ -1,4 +1,4 @@
-package com.vishu.batch.config;
+package com.vishu.test.batch.config;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;

@@ -1,4 +1,4 @@
-package com.vishu.batch.controller;
+package com.vishu.test.batch.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -26,7 +26,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.vishu.batch.config.BatchConfiguration;
-import com.vishu.batch.config.TestConfiguration;
+import com.vishu.batch.controller.BatchAPI;
+import com.vishu.test.batch.config.TestConfiguration;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes={BatchConfiguration.class, TestConfiguration.class})

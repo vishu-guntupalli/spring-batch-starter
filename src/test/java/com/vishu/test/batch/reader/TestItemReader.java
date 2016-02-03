@@ -1,5 +1,6 @@
-package com.vishu.batch.config;
+package com.vishu.test.batch.reader;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,11 +15,13 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.vishu.batch.config.BatchConfiguration;
 import com.vishu.batch.model.Product;
+import com.vishu.test.batch.config.TestConfiguration;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes={BatchConfiguration.class, TestConfiguration.class})
-public class TestItemReader{
+public class TestItemReader {
 
 	@Autowired
 	@Qualifier("productsFileReader")
@@ -26,13 +29,19 @@ public class TestItemReader{
 	
 	@Before
 	public void setUp() {
-		productsFileReader.setResource(new ClassPathResource("TestFruit.csv"));
+		
+	}
+	
+	@After
+	public void tearDown() {
+		productsFileReader.close();
 	}
 	
 	@Test
 	public void testProductFileReader_testCount() throws UnexpectedInputException, ParseException, Exception {
+		productsFileReader.setResource(new ClassPathResource("TestFruit.csv"));
 		productsFileReader.open(MetaDataInstanceFactory.createStepExecution().getExecutionContext());
-		
+
 		int count = 0;
 		Product product;
 		while((product = productsFileReader.read())!=null){

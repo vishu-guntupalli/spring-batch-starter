@@ -141,7 +141,7 @@ public class BatchConfiguration {
                 .build();
     }
 	
-	@Bean
+	@Bean(name="playerReader")
 	public ItemReader<BaseballPlayer> playerReader() {
 		FlatFileItemReader<BaseballPlayer> playerReader = new FlatFileItemReader<BaseballPlayer>();
 		playerReader.setResource(new ClassPathResource(playerFilePath));

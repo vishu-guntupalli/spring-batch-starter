@@ -1,4 +1,4 @@
-package com.vishu.batch.step;
+package com.vishu.test.batch.integration;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -14,7 +14,7 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.vishu.batch.config.BatchConfiguration;
-import com.vishu.batch.config.TestConfiguration;
+import com.vishu.test.batch.config.TestConfiguration;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes={TestConfiguration.class, BatchConfiguration.class})
