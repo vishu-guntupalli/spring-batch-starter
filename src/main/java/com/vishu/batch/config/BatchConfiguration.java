@@ -179,7 +179,6 @@ public class BatchConfiguration {
     	playerWriter.setLineAggregator(lineAggregator);
     	
     	return playerWriter;
-    	
     }
     
     @Bean
@@ -189,8 +188,7 @@ public class BatchConfiguration {
     
     @Bean 
     public RestApiWriter restApiWriter() {
-    	RestApiWriter restApiWriter = new RestApiWriter();
-    	return restApiWriter;
+    	return new RestApiWriter();
     }
     
     @Bean 
