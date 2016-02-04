@@ -23,6 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class BatchAPI {
 	
+	private static final String BATCH_API_START_PROCESS_PLAYERS_JOB = "/batch/api/startProcessPlayersJob";
+
+	private static final String BATCH_API_START_IMPORT_PRODUCTS_JOB = "/batch/api/startImportProductsJob";
+
 	@Autowired
 	private JobLauncher jobLauncher;
 	
@@ -32,7 +36,7 @@ public class BatchAPI {
 	@Autowired
 	private Job processPlayersJob;
 
-	@RequestMapping(method=RequestMethod.POST, value="/batch/api/startImportProductsJob", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(method=RequestMethod.POST, value=BATCH_API_START_IMPORT_PRODUCTS_JOB, consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
 	public @ResponseBody Map<String, String> startImportProductsJob(@RequestBody Map<String, String> paramMap) throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
 		
 		JobParametersBuilder parametersBuilder = new JobParametersBuilder();
@@ -45,7 +49,7 @@ public class BatchAPI {
 		return returnMap;
 	}
 	
-	@RequestMapping(method=RequestMethod.POST, value="/batch/api/startProcessPlayersJob", consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(method=RequestMethod.POST, value=BATCH_API_START_PROCESS_PLAYERS_JOB, consumes=MediaType.APPLICATION_JSON_VALUE, produces=MediaType.APPLICATION_JSON_VALUE)
 	public @ResponseBody Map<String, String> startProcessPlayersJob(@RequestBody Map<String, String> paramMap) throws Exception{
 		
 		JobParametersBuilder parametersBuilder = new JobParametersBuilder();

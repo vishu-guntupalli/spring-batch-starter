@@ -39,6 +39,11 @@ import com.vishu.batch.processor.ProductItemProcessor;
 import com.vishu.batch.writer.RestApiWriter;
 
 
+/**
+ * The spring configuration class for the application
+ * @author guntupv
+ *
+ */
 @Configuration
 @EnableBatchProcessing
 @PropertySource(value = { "classpath:/com/vishu/batch/batch.properties" })
@@ -53,7 +58,7 @@ public class BatchConfiguration {
 	private static final String DATABASE_TYPE = "MySQL";
 
 	private static final String ISOLATION_LEVEL = "ISOLATION_READ_UNCOMMITTED";
-
+	
 	//File Read and write paths
 	@Value("${productFilePath}")
 	private String productFilePath;
@@ -80,6 +85,10 @@ public class BatchConfiguration {
 	@Value("${spring.datasource.driverClassName}")
 	private String driverClassName;
 	
+	/**
+	 * Definition for productsFileReader bean, this reader reads from the Fruit.csv file
+	 * @return
+	 */
 	@Bean(name="productsFileReader")
     public ItemReader<Product> productsFileReader() {
         FlatFileItemReader<Product> reader = new FlatFileItemReader<Product>();
@@ -95,11 +104,20 @@ public class BatchConfiguration {
         return reader;
     }
 	
+	/**
+	 * Definition for the productProcessor bean, takes {@link Product} as input and transforms it into {@link DiscountProduct} 
+	 * @return
+	 */
 	@Bean 
 	public ItemProcessor<Product, DiscountProduct> productProcessor() {
 		return new ProductItemProcessor();
 	}
 	
+	/**
+	 * Definition for productWriter bean, this bean aggregates the contents of {@link DiscountProduct} 
+	 * class to a comma delimited line and writes to FruitWithDiscount.csv file
+	 * @return
+	 */
 	@Bean(name="productWriter")
 	public ItemWriter<DiscountProduct> productWriter() {
 		FlatFileItemWriter<DiscountProduct> discountProductWriter = new FlatFileItemWriter<DiscountProduct>();
@@ -118,6 +136,14 @@ public class BatchConfiguration {
 		return discountProductWriter;
 	}
 	
+	/**
+	 * Definition of processProducts step, the step consists of productsFileReader, productProcessor and oracleErpWriter
+	 * @param stepBuilderFactory
+	 * @param reader
+	 * @param oracleErpWriter
+	 * @param processor
+	 * @return
+	 */
 	@Bean
     public Step processProducts(StepBuilderFactory stepBuilderFactory, ItemReader<Product> reader, ItemWriter<DiscountProduct> oracleErpWriter, ItemProcessor<Product, DiscountProduct> processor) {
         return stepBuilderFactory.get("processProducts")
@@ -131,6 +157,13 @@ public class BatchConfiguration {
                 .build();
     }
 	
+	/**
+	 * Definition of importProductsJob which consists of processProducts step and jobRepository
+	 * @param jobs
+	 * @param processProducts
+	 * @return
+	 * @throws Exception
+	 */
 	@Bean
     public Job importProductsJob(JobBuilderFactory jobs, Step processProducts) throws Exception {
         return jobs.get("importProductsJob")
@@ -141,6 +174,10 @@ public class BatchConfiguration {
                 .build();
     }
 	
+	/**
+	 * Definition of playerReader bean, this bean reads from the AwardsPlayer.csv file and transforms it into {@link BaseballPlayer} object
+	 * @return
+	 */
 	@Bean(name="playerReader")
 	public ItemReader<BaseballPlayer> playerReader() {
 		FlatFileItemReader<BaseballPlayer> playerReader = new FlatFileItemReader<BaseballPlayer>();
@@ -158,11 +195,19 @@ public class BatchConfiguration {
 		return playerReader;
 	}
 	
+	/**
+	 * Definition for playerProcessor, consumes and produces {@link BaseballPlayer}
+	 * @return
+	 */
 	@Bean
 	public ItemProcessor<BaseballPlayer, BaseballPlayer> playerProcessor() {
 		return new BaseballPlayerProcessor();
 	}
     
+	/**
+	 * Definition for playerWriter, aggregates the contents of {@link BaseballPlayer} to comma delimited lines and writes to OutputPlayers.csv file.
+	 * @return
+	 */
     @Bean
     public ItemWriter<BaseballPlayer> playerWriter() {
     	FlatFileItemWriter<BaseballPlayer> playerWriter = new FlatFileItemWriter<BaseballPlayer>();
@@ -181,16 +226,28 @@ public class BatchConfiguration {
     	return playerWriter;
     }
     
+    /**
+     * RestTemplate bean definition which will be injected into {@link RestApiWriter}
+     * @return
+     */
     @Bean
     public RestTemplate restTemplate() {
     	return new RestTemplate();
     }
     
+    /**
+     * Definition of restApiWriter bean, takes {@link DiscountProduct} as input, transforms it into a JSON object and sends it to the remote API 
+     * @return
+     */
     @Bean 
     public RestApiWriter restApiWriter() {
     	return new RestApiWriter();
     }
     
+    /**
+     * ItemWriterAdapter delegates the call to "sendToErp" method of {@link RestApiWriter} when write method of {@link ItemWriter} is invoked
+     * @return
+     */
     @Bean 
     public ItemWriterAdapter<DiscountProduct> oracleErpWriter() {
     	ItemWriterAdapter<DiscountProduct> itemWriterAdapter = new ItemWriterAdapter<>();
@@ -199,7 +256,14 @@ public class BatchConfiguration {
     	
     	return itemWriterAdapter;
     }
-    
+    /**
+     * Definition of processPlayers step 
+     * @param stepBuilderFactory
+     * @param reader
+     * @param writer
+     * @param itemProcessor
+     * @return
+     */
     @Bean
     public Step processPlayers(StepBuilderFactory stepBuilderFactory, ItemReader<BaseballPlayer> reader, ItemWriter<BaseballPlayer> writer, ItemProcessor<BaseballPlayer, BaseballPlayer> itemProcessor) {
     	return stepBuilderFactory.get("processPlayers")
@@ -210,6 +274,13 @@ public class BatchConfiguration {
     			.build();
     }
     
+    /**
+     * Definition of processPlayersJob bean 
+     * @param jobs
+     * @param processPlayers
+     * @return
+     * @throws Exception
+     */
     @Bean
     public Job processPlayersJob(JobBuilderFactory jobs, Step processPlayers) throws Exception {
     	return jobs.get("processPlayersJob")
