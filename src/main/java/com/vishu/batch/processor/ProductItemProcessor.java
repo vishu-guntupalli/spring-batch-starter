@@ -1,5 +1,7 @@
 package com.vishu.batch.processor;
 
+import java.util.function.Predicate;
+
 import org.springframework.batch.item.ItemProcessor;
 
 import com.vishu.batch.model.DiscountProduct;
@@ -9,7 +11,9 @@ public class ProductItemProcessor implements ItemProcessor<Product, DiscountProd
 
 	public DiscountProduct process(Product item) throws Exception {
         DiscountProduct discountProduct = new DiscountProduct(item);
-		if( !((item.getProductId() % 2) == 1)) {
+        Predicate<Long> isEven = (x) -> (x%2 == 0);
+        
+		if(isEven.test(item.getProductId())) {
         	discountProduct.setDiscountAvailable(true);
         }
 		return discountProduct;
