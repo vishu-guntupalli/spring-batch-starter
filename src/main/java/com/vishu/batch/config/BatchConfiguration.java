@@ -46,7 +46,6 @@ import com.vishu.batch.writer.RestApiWriter;
  */
 @Configuration
 @EnableBatchProcessing
-@PropertySource(value = { "classpath:/com/vishu/batch/batch.properties" })
 public class BatchConfiguration {
 	
 	private static final String[] DISCOUNTPRODUCT_FIELDS = new String[] {"productId", "productName", "price", "discountAvailable"};

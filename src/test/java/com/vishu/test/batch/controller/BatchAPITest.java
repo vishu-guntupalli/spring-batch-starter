@@ -22,7 +22,7 @@ import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.vishu.batch.config.BatchConfiguration;
@@ -30,7 +30,7 @@ import com.vishu.batch.controller.BatchAPI;
 import com.vishu.test.batch.config.TestConfiguration;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes={BatchConfiguration.class, TestConfiguration.class})
+@SpringApplicationConfiguration(classes={BatchConfiguration.class, TestConfiguration.class})
 public class BatchAPITest {
 
 	@InjectMocks
